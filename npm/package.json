@@ -1,7 +1,15 @@
 {
   "name": "@cyberluke/railgun",
-  "version": "2.0.4",
+  "version": "2.0.5",
   "description": "The fastest native TypeScript toolchain, one process, one traversal, no spray. railgun.exe: Q3-flavored one-pass type-aware lint+typecheck (Oxlint + tsgolint). railgun-pgo.exe: PGO-tuned hot loop. railgun-lld.exe: lld-linked twin. railgun-native.exe: target-cpu=native build. railgun-ts.exe: Go-native TypeScript 7 tsc backend (8-12x vs TS6; tsgolint 20-40x vs ESLint+typescript-eslint). Ships a migration pack (railgunize init) that rewires pnpm/turborepo workspaces into the native loop, installs a customized agent SKILL.md and updates AGENTS.md. Modifiers: -p|--project, --noEmit, --pretty, --max-diagnostics, --summary-only, --changed, --no-daemon; machine formats --agent/--json/--jsonl/--timings; named-pipe daemon with 300s idle. 59 errors | 120 warnings | 776 files | ~6s type-aware. IMPRESSIVE.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cyberluke/railgun_exe.git"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "type": "commonjs",
   "bin": {
     "railgun": "bin/railgun.js",
@@ -20,10 +28,7 @@
     "node": ">=18"
   },
   "optionalDependencies": {
-    "@cyberluke/railgun-win32-x64": "2.0.4",
-    "@cyberluke/railgun-linux-x64": "2.0.4",
-    "@cyberluke/railgun-linux-arm64": "2.0.4",
-    "@cyberluke/railgun-darwin-arm64": "2.0.1"
+    "@cyberluke/railgun-win32-x64": "2.0.5"
   },
   "keywords": [
     "typescript",
