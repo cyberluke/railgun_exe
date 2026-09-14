@@ -106,9 +106,9 @@ Legacy → Railgun mapping (in the skill and the managed AGENTS block):
 `npx eslint .` / `pnpm lint` / `next lint` / `npx oxlint` → `railgun lint`;
 per-package loop → `railgun workspace check --affected`.
 
-## 6. Migration demo, `C:\git\new-chat` (pnpm + Turbo + Next 16.x)
+## 6. Migration demo (pnpm + Turbo + Next 16.x)
 
-48 manifests (47 packages + root) patched, `turbo.json` tasks `typegen/check/lint/typecheck` merged
+48 manifests (47 packages + root) patched in a pnpm/Turbo/Next workspace, `turbo.json` tasks `typegen/check/lint/typecheck` merged
 into the existing two, `AGENTS.md` block appended, 4 skill files
 (`.claude`/`.roo`/`.kilo` digests equal `7141cf4a7db5…` of the `.agents` canonical),
 baseline fingerprints + LoC stored in `.railgun/`. Second `init`: `package.json`, `turbo.json`,
