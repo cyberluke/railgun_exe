@@ -1,7 +1,7 @@
 {
   "name": "@cyberluke/railgun",
-  "version": "2.0.0",
-  "description": "Native TypeScript/Next.js validation runtime and workspace migrator for AI agents.",
+  "version": "2.0.1",
+  "description": "Node launcher + workspace migrator for the railgun.exe native toolchain: one-pass type-aware lint/typecheck via Oxlint and tsgolint.",
   "type": "commonjs",
   "bin": {
     "railgun": "bin/railgun.js",
@@ -15,10 +15,10 @@
     "node": ">=18"
   },
   "optionalDependencies": {
-    "@cyberluke/railgun-win32-x64": "2.0.0",
-    "@cyberluke/railgun-linux-x64": "2.0.0",
-    "@cyberluke/railgun-linux-arm64": "2.0.0",
-    "@cyberluke/railgun-darwin-arm64": "2.0.0"
+    "@cyberluke/railgun-win32-x64": "2.0.1",
+    "@cyberluke/railgun-linux-x64": "2.0.1",
+    "@cyberluke/railgun-linux-arm64": "2.0.1",
+    "@cyberluke/railgun-darwin-arm64": "2.0.1"
   },
   "keywords": [
     "typescript",
