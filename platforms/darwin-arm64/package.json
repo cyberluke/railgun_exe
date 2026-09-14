@@ -1,0 +1,19 @@
+{
+  "name": "@cyberluke/railgun-darwin-arm64",
+  "version": "2.0.6",
+  "description": "darwin-arm64 native body for @cyberluke/railgun: Oxlint (PGO) + tsgolint (Go TS7).",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cyberluke/railgun_exe.git"
+  },
+  "os": ["darwin"],
+  "cpu": ["arm64"],
+  "files": [
+    "railgun.exe",
+    "railgun-pgo.exe",
+    "railgun-lld.exe",
+    "railgun-native.exe",
+    "railgun-ts.exe"
+  ]
+}

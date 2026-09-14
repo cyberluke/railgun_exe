@@ -82,8 +82,7 @@ Node client: one request per pipe accept, identity embedded in the pipe name,
 
 ## 5. Migrator (`@cyberluke/railgun`, `npm/bin/railgun.js`)
 
-`npx -y @cyberluke/railgun@latest init` from any subdirectory. The npm registry holds no `@cyberluke/*`
-tarballs yet (`GET /@cyberluke%2frailgun` → `{"error":"Not found"}`), so the same launcher runs from this
+`npx -y @cyberluke/railgun@latest init` from any subdirectory (registry: `@cyberluke/railgun` is live). The same launcher runs from this
 folder: `npx -y C:\git\railgun_exe\npm init` or `node C:\git\railgun_exe\npm\bin\railgun.js init`; the
 native body is then resolved from `RAILGUN_BIN` → `.railgun/bin` → `C:\bin\railgun.exe`. Root discovery: nearest
 `pnpm-workspace.yaml` → `turbo.json` → `package.json` → `.git`; the root itself is always a plan
@@ -121,5 +120,7 @@ baseline fingerprints + LoC stored in `.railgun/`. Second `init`: `package.json`
 Next-generated route types (`next typegen`) > Railgun native lint/typecheck > `next build`
 (Turbopack) as the final gate. `typeCheck` is still experimental upstream, so native TS7 `tsc`
 stays the merge gate; the daemon belongs to the agent hot loop only. Files:
-`README.md`, `AGENTS.md`, `npm/package.json`, `npm/bin/railgun.js`, `npm/skills/SKILL.md`,
-`build-oxlint.ps1`, `build-tsgolint.ps1`.
+`README.md`, `AGENTS.md`, `npm/package.json`, `npm/bin/railgun.js`, `npm/skills/SKILL.md`, `npm/README.md`,
+`build-oxlint.ps1`, `build-tsgolint.ps1`, `build-all.ps1`, `platforms/*/package.json`, `.github/workflows/ci.yml`.
+CI matrix (`.github/workflows/ci.yml`) builds all four targets — win32-x64, linux-x64, linux-arm64, darwin-arm64 —
+from pinned upstream SHAs (`OXC_SHA`, `TSGOLINT_SHA`) and publishes the four platform packages plus the main one.

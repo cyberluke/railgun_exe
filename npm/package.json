@@ -29,7 +29,10 @@
     "node": ">=18"
   },
   "optionalDependencies": {
-    "@cyberluke/railgun-win32-x64": "2.0.6"
+    "@cyberluke/railgun-win32-x64": "2.0.6",
+    "@cyberluke/railgun-linux-x64": "2.0.6",
+    "@cyberluke/railgun-linux-arm64": "2.0.6",
+    "@cyberluke/railgun-darwin-arm64": "2.0.6"
   },
   "keywords": [
     "typescript",
