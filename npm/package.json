@@ -1,0 +1,32 @@
+{
+  "name": "@viverra/railgun",
+  "version": "2.0.0",
+  "description": "Native TypeScript/Next.js validation runtime and workspace migrator for AI agents.",
+  "type": "commonjs",
+  "bin": {
+    "railgun": "bin/railgun.js",
+    "railgunize": "bin/railgun.js"
+  },
+  "files": [
+    "bin/railgun.js",
+    "skills/SKILL.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "optionalDependencies": {
+    "@viverra/railgun-win32-x64": "2.0.0",
+    "@viverra/railgun-linux-x64": "2.0.0",
+    "@viverra/railgun-linux-arm64": "2.0.0",
+    "@viverra/railgun-darwin-arm64": "2.0.0"
+  },
+  "keywords": [
+    "typescript",
+    "nextjs",
+    "pnpm",
+    "turborepo",
+    "lint",
+    "typecheck",
+    "agents"
+  ]
+}
