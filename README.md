@@ -80,10 +80,10 @@ The persistent `LintRunner` keeps the Go TS program, project index and dirty set
 Node client: one request per pipe accept, identity embedded in the pipe name,
 12 s socket budget then a cold fallback — so the hot loop never pays two timeouts.
 
-## 5. Migrator (`@viverra/railgun`, `npm/bin/railgun.js`)
+## 5. Migrator (`@cyberluke/railgun`, `npm/bin/railgun.js`)
 
-`npx -y @viverra/railgun@latest init` from any subdirectory. The npm registry holds no `@viverra/*`
-tarballs yet (`GET /@viverra%2frailgun` → `{"error":"Not found"}`), so the same launcher runs from this
+`npx -y @cyberluke/railgun@latest init` from any subdirectory. The npm registry holds no `@cyberluke/*`
+tarballs yet (`GET /@cyberluke%2frailgun` → `{"error":"Not found"}`), so the same launcher runs from this
 folder: `npx -y C:\git\railgun_exe\npm init` or `node C:\git\railgun_exe\npm\bin\railgun.js init`; the
 native body is then resolved from `RAILGUN_BIN` → `.railgun/bin` → `C:\bin\railgun.exe`. Root discovery: nearest
 `pnpm-workspace.yaml` → `turbo.json` → `package.json` → `.git`; the root itself is always a plan

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /*
- * @viverra/railgun — thin Node launcher + repository migrator.
+ * @cyberluke/railgun — thin Node launcher + repository migrator.
  *
  * Node does discovery and JSON/Markdown migration only. Validation runs in the native
  * `railgun.exe` (PGO'd Oxlint + Go tsgolint backend) so the agent hot loop does not pay the
@@ -227,10 +227,10 @@ function resolveBinary(root) {
   if (process.env.RAILGUN_BIN) candidates.push(process.env.RAILGUN_BIN);
   candidates.push(path.join(root, '.railgun', 'bin', 'railgun.exe'));
   candidates.push(path.join(root, '.railgun', 'bin', 'railgun'));
-  candidates.push(path.join(root, 'node_modules', '@viverra', 'railgun', 'bin', 'railgun.exe'));
+  candidates.push(path.join(root, 'node_modules', '@cyberluke', 'railgun', 'bin', 'railgun.exe'));
   for (const pkg of [
-    '@viverra/railgun-win32-x64', '@viverra/railgun-linux-x64',
-    '@viverra/railgun-linux-arm64', '@viverra/railgun-darwin-arm64',
+    '@cyberluke/railgun-win32-x64', '@cyberluke/railgun-linux-x64',
+    '@cyberluke/railgun-linux-arm64', '@cyberluke/railgun-darwin-arm64',
   ]) {
     candidates.push(path.join(root, 'node_modules', pkg, 'bin', 'railgun.exe'));
     candidates.push(path.join(root, 'node_modules', pkg, 'railgun.exe'));
@@ -271,12 +271,12 @@ function shimBin(root, binary) {
 
 const PKG_DIR = path.resolve(__dirname, '..');
 
-/// `file:` spec for the local launcher folder, so pnpm/npm resolve `@viverra/railgun`
+/// `file:` spec for the local launcher folder, so pnpm/npm resolve `@cyberluke/railgun`
 /// without a registry lookup. Written straight into the root manifest.
 function linkLocalPackage(root) {
   const spec = `file:${PKG_DIR.replace(/\\/g, '/')}`;
   const file = path.join(root, 'package.json');
-  const patched = patchJson(file, [['devDependencies', '@viverra/railgun', spec]]);
+  const patched = patchJson(file, [['devDependencies', '@cyberluke/railgun', spec]]);
   if (patched.changed) writeFileAtomic(file, patched.text);
   return spec;
 }
@@ -1034,10 +1034,10 @@ async function cmdInit(root, argv) {
   const skill = skillFiles(root);
 
   // Root dependency only; nested packages resolve the workspace binary normally.
-  // The registry holds no `@viverra/*` tarball yet, so it resolves as a folder link.
+  // The registry holds no `@cyberluke/*` tarball yet, so it resolves as a folder link.
   const rootJson = (plan.ops.find((op) => op.isRoot) || { json: {} }).json;
   const hasDep = ['dependencies', 'devDependencies']
-    .some((section) => Object.prototype.hasOwnProperty.call(rootJson[section] || {}, '@viverra/railgun'));
+    .some((section) => Object.prototype.hasOwnProperty.call(rootJson[section] || {}, '@cyberluke/railgun'));
   const local = linkLocalPackage(root);
   let dep = hasDep ? 'present' : 'linked';
   let shims = [];
