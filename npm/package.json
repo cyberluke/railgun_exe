@@ -1,7 +1,7 @@
 {
   "name": "@cyberluke/railgun",
-  "version": "2.0.5",
-  "description": "The fastest native TypeScript toolchain, one process, one traversal, no spray. railgun.exe: Q3-flavored one-pass type-aware lint+typecheck (Oxlint + tsgolint). railgun-pgo.exe: PGO-tuned hot loop. railgun-lld.exe: lld-linked twin. railgun-native.exe: target-cpu=native build. railgun-ts.exe: Go-native TypeScript 7 tsc backend (8-12x vs TS6; tsgolint 20-40x vs ESLint+typescript-eslint). Ships a migration pack (railgunize init) that rewires pnpm/turborepo workspaces into the native loop, installs a customized agent SKILL.md and updates AGENTS.md. Modifiers: -p|--project, --noEmit, --pretty, --max-diagnostics, --summary-only, --changed, --no-daemon; machine formats --agent/--json/--jsonl/--timings; named-pipe daemon with 300s idle. 59 errors | 120 warnings | 776 files | ~6s type-aware. IMPRESSIVE.",
+  "version": "2.0.6",
+  "description": "State of the art. The fastest native TypeScript toolchain that exists: Go-native TS7 tsc (8-12x vs TS6) + tsgolint (20-40x vs ESLint) — one process, one traversal, no spray. 776-file workspace, type-aware, in ~6000ms. Q3A scoreboard: PERFECT=0 errors, HEADSHOT=1, IMPRESSIVE=2-9, EXCELLENT=10-49. Example: '0 errors | 42 files | 2100 LoC | 18ms | cache: hot' = PERFECT. One command replaces tsc+eslint+oxlint+next lint loops; persistent named-pipe daemon keeps the Go TS program warm. Ships 5 native bodies + railgunize migrator (48 manifests, turbo.json merge, AGENTS.md block, customized SKILL.md, baseline capture).",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -16,6 +16,7 @@
     "railgunize": "bin/railgun.js"
   },
   "files": [
+    "README.md",
     "bin/railgun.js",
     "bin/railgun.exe",
     "bin/railgun-pgo.exe",
@@ -28,7 +29,7 @@
     "node": ">=18"
   },
   "optionalDependencies": {
-    "@cyberluke/railgun-win32-x64": "2.0.5"
+    "@cyberluke/railgun-win32-x64": "2.0.6"
   },
   "keywords": [
     "typescript",
