@@ -13,7 +13,12 @@ required env: none (backend auto-resolves); optional override OXLINT_TSGOLINT_PA
 
 modifiers: -p|--project PATH | --noEmit | --pretty | --max-diagnostics N (default 20) | --summary-only | --changed | --no-daemon
 machine formats: --agent (short for -f agent) | --json | --jsonl | --timings
+defaults (always on, no flag needed): --quiet, -f agent (via --agent); explicit flags still override
 daemon: C:\bin\railgun.exe daemon start|status|stop (named pipe \\.\pipe\railgun-<identity>, persistent LintRunner, 300 s idle)
+
+submodules (relative to this repo root): ./oxc -> github.com/cyberluke/oxc, ./tsgolint -> github.com/cyberluke/tsgolint
+(nested ./tsgolint/typescript-go -> github.com/cyberluke/typescript-go); populate with
+`git submodule update --init --recursive`; rebuild wiring with `pwsh -File vendor-setup.ps1`
 
 Do not run:
 - npx tsc

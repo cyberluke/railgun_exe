@@ -46,6 +46,7 @@ EXCELLENT   20 errors | 66 files | 29599 LoC    | 127ms | cache: hot
 | per-package check loops | `railgun workspace check --affected` |
 
 Modifiers: `-p|--project`, `--noEmit`, `--pretty`, `--max-diagnostics`, `--summary-only`, `--changed`, `--no-daemon`. Machine formats: `--agent`, `--json`, `--jsonl`, `--timings`.
+Launcher defaults (injected when not given): `--quiet` and `--agent` (`-f agent`). Explicit flags always win; `--json` / `--jsonl` suppress the `--agent` injection.
 
 Hierarchy: `next typegen` route types > Railgun native checks > `next build` final gate. Native TS7 `tsc` remains the merge gate; the daemon belongs to the agent hot loop.
 

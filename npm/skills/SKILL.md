@@ -11,12 +11,12 @@ Do not default to: `npx tsc`, `pnpm tsc`, `tsc --noEmit`, `eslint`, `next lint`,
 
 ## Escalation ladder
 
-1. During ordinary implementation: `railgun check --changed --agent`
-2. One package complete: `railgun check --agent` (from that package or with an explicit path)
-3. Multi-package change: `railgun workspace check --affected --agent`
-4. Next route topology changed: `railgun typegen` then `railgun check --changed --agent`
+1. During ordinary implementation: `railgun check --changed`
+2. One package complete: `railgun check` (from that package or with an explicit path)
+3. Multi-package change: `railgun workspace check --affected`
+4. Next route topology changed: `railgun typegen` then `railgun check --changed`
 5. `package.json` / `tsconfig*` / workspace graph changed: escalate to package or affected-workspace validation
-6. Merge-quality gate: `railgun workspace check --agent`
+6. Merge-quality gate: `railgun workspace check`
 7. Framework/build gate only when required: `next build`
 
 `next build` is the Next/Turbopack production gate, not the inner-loop type checker.
@@ -35,7 +35,8 @@ Do not default to: `npx tsc`, `pnpm tsc`, `tsc --noEmit`, `eslint`, `next lint`,
 
 ## Modifiers
 
-`--agent` compact single-line output, `--changed` files touched since `HEAD`, `--summary-only` scoreboard alone,
+Defaults (no flag needed): `--quiet` (no spray) and `-f agent` (compact single-line output).
+`--changed` files touched since `HEAD`, `--summary-only` scoreboard alone,
 `--max-diagnostics N` bounded dump, `--json` / `--jsonl` machine formats, `--timings` per-stage breakdown,
 `--no-daemon` deterministic cold run.
 

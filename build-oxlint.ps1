@@ -1,11 +1,18 @@
 # Build railgun.exe bodies from oxlint (native / PGO / lld variants).
-$ErrorActionPreference = 'Stop'
-
-# Repository layout: script lives next to the source tree roots.
 param(
-    [string]$OxcRoot = 'C:\git\oxc',
+    [string]$OxcRoot,
     [string]$BinDir  = 'C:\bin'
 )
+$ErrorActionPreference = 'Stop'
+
+# Submodule layout: ./oxc next to this script (see .gitmodules).
+if (-not $OxcRoot) { $OxcRoot = Join-Path $PSScriptRoot 'oxc' }
+if (-not (Test-Path -LiteralPath (Join-Path $OxcRoot '.git'))) {
+  Write-Host "[build-oxlint] missing submodule at $OxcRoot"
+  Write-Host '[build-oxlint] run: git submodule update --init --recursive'
+  exit 1
+}
+Write-Host "[build-oxlint] oxc root = $OxcRoot"
 
 Set-Location $OxcRoot
 $env:PATH = 'C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\bin\Hostx64\x64;' + $env:PATH
@@ -18,7 +25,7 @@ New-Item -ItemType Directory -Force $BinDir | Out-Null
 Copy-Item -LiteralPath "$OxcRoot\target\release\oxlint.exe" -Destination "$BinDir\railgun-native.exe" -Force
 
 # PGO stage 1: instrumented
-$env:RUSTFLAGS = '-C target-cpu=native -Cprofile-generate='"$OxcRoot"\pgo-profile'
+$env:RUSTFLAGS = "-C target-cpu=native -Cprofile-generate=$OxcRoot\pgo-profile"
 cargo build --release -p oxlint --features allocator --target-dir "$OxcRoot\target-pgo"
 if ($LASTEXITCODE) { throw "cargo PGO instrumentation build failed (exit $LASTEXITCODE)" }
 
@@ -26,7 +33,7 @@ if ($LASTEXITCODE) { throw "cargo PGO instrumentation build failed (exit $LASTEX
 # $env:LLVM_PROFILE_FILE = "$OxcRoot\pgo-profile\corpusN.profraw" per run
 # llvm-profdata merge -o $OxcRoot\pgo-profile\merged.profdata corpus1..6.profdata
 
-$env:RUSTFLAGS = '-C target-cpu=native -Cprofile-use='"$OxcRoot"\pgo-profile\merged.profdata'
+$env:RUSTFLAGS = "-C target-cpu=native -Cprofile-use=$OxcRoot\pgo-profile\merged.profdata"
 cargo build --release -p oxlint --features allocator --target-dir "$OxcRoot\target-pgo-final"
 if ($LASTEXITCODE) { throw "cargo PGO build failed (exit $LASTEXITCODE)" }
 

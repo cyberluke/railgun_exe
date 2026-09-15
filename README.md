@@ -17,9 +17,11 @@ Sizes are per revision (the four `.bin` hard links share the `railgun.exe` recor
 size). Re-create those links after each `C:\bin` rebuild: `Copy-Item -Force` swaps the file record, and the
 daemon (or a leftover `railgun` PID) holds the mapped image — stop it inside the same command, then copy.
 
-Source pins: `C:\git\oxc` @ `1aa5ec1` (+ local `apps/oxlint`/`crates/oxc_linter` work, 38 modified tracked
-files: 6 code, 20 snapshots, fixtures/`Cargo.lock`), tsgolint `C:\git\tsgolint` @ `f78270d` (6 tracked
-modifications) with 5 patches applied to `typescript-go` @ `da8549f8c` (upstream `2bd066d87`).
+Source pins (git submodules, forks under `github.com/cyberluke`): `oxc/` @ `615742f` (upstream
+`oxc-project/oxc` `1aa5ec1` + railgun agent-format/quiet/daemon work), `tsgolint/` @ `6aa4e17`
+(upstream `oxc-project/tsgolint` `f78270d` + PGO corpus and shim module), nested `typescript-go/` @
+`3212736e5` (upstream `microsoft/typescript-go` `2bd066d87` + 5 railgun patches). Populate with
+`git submodule update --init --recursive`; `vendor-setup.ps1` re-creates the forks and the wiring.
 
 ## 2. Flags and profile
 
@@ -31,6 +33,7 @@ modifications) with 5 patches applied to `typescript-go` @ `da8549f8c` (upstream
 - Native flags in this build: `--max-diagnostics N` (default 20, `suppressed:` roll-up),
   `--summary-only`, `--changed` (git-scoped), `--no-daemon`, `--agent` (alias of `-f agent`),
   `--json` / `--jsonl`, `--timings` → `--debug timings`.
+- Launcher defaults (`bin/railgun.js` injects them when absent, explicit flags win): `--quiet`, `--agent`.
 - `tsc`-shaped flags (this pass): `-p` / `--project <tsconfig|dir>` — also becomes the walk scope when no PATH
   follows (`-p apps/web/tsconfig.json` → `scope: apps/web`, `-p packages/feature-chat` → `packages/feature-chat`);
   `--noEmit` / `--no-emit` accepted as no-ops; `--pretty` = `--format default`.
@@ -121,6 +124,8 @@ Next-generated route types (`next typegen`) > Railgun native lint/typecheck > `n
 (Turbopack) as the final gate. `typeCheck` is still experimental upstream, so native TS7 `tsc`
 stays the merge gate; the daemon belongs to the agent hot loop only. Files:
 `README.md`, `AGENTS.md`, `npm/package.json`, `npm/bin/railgun.js`, `npm/skills/SKILL.md`, `npm/README.md`,
-`build-oxlint.ps1`, `build-tsgolint.ps1`, `build-all.ps1`, `platforms/*/package.json`, `.github/workflows/ci.yml`.
+`build-oxlint.ps1`, `build-tsgolint.ps1`, `build-all.ps1`, `vendor-setup.ps1`, `platforms/*/package.json`,
+`.gitmodules`, `.github/workflows/ci.yml`.
 CI matrix (`.github/workflows/ci.yml`) builds all four targets — win32-x64, linux-x64, linux-arm64, darwin-arm64 —
-from pinned upstream SHAs (`OXC_SHA`, `TSGOLINT_SHA`) and publishes the four platform packages plus the main one.
+from the submodule pins (`OXC_SHA`, `TSGOLINT_SHA`, with `submodules: recursive` on checkout) and publishes the
+four platform packages plus the main one.

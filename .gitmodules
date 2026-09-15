@@ -1,0 +1,6 @@
+[submodule "oxc"]
+	path = oxc
+	url = https://github.com/cyberluke/oxc.git
+[submodule "tsgolint"]
+	path = tsgolint
+	url = https://github.com/cyberluke/tsgolint.git

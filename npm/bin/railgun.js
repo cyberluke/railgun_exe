@@ -37,12 +37,12 @@ Do not default to: \`npx tsc\`, \`pnpm tsc\`, \`tsc --noEmit\`, \`eslint\`, \`ne
 
 ## Escalation ladder
 
-1. During ordinary implementation: \`railgun check --changed --agent\`
-2. One package complete: \`railgun check --agent\` (from that package or with an explicit path)
-3. Multi-package change: \`railgun workspace check --affected --agent\`
-4. Next route topology changed: \`railgun typegen\` then \`railgun check --changed --agent\`
+1. During ordinary implementation: \`railgun check --changed\`
+2. One package complete: \`railgun check\` (from that package or with an explicit path)
+3. Multi-package change: \`railgun workspace check --affected\`
+4. Next route topology changed: \`railgun typegen\` then \`railgun check --changed\`
 5. \`package.json\` / \`tsconfig*\` / workspace graph changed: escalate to package or affected-workspace validation
-6. Merge-quality gate: \`railgun workspace check --agent\`
+6. Merge-quality gate: \`railgun workspace check\`
 7. Framework/build gate only when required: \`next build\`
 
 \`next build\` is the Next/Turbopack production gate, not the inner-loop type checker.
@@ -61,7 +61,8 @@ Do not default to: \`npx tsc\`, \`pnpm tsc\`, \`tsc --noEmit\`, \`eslint\`, \`ne
 
 ## Modifiers
 
-\`--agent\` compact single-line output, \`--changed\` files touched since \`HEAD\`, \`--summary-only\` scoreboard alone,
+Defaults (no flag needed): \`--quiet\` (no spray) and \`-f agent\` (compact single-line output).
+\`--changed\` files touched since \`HEAD\`, \`--summary-only\` scoreboard alone,
 \`--max-diagnostics N\` bounded dump, \`--json\` / \`--jsonl\` machine formats, \`--timings\` per-stage breakdown,
 \`--no-daemon\` deterministic cold run.
 
@@ -736,7 +737,7 @@ const sleep = (ms) => new Promise((resolve) => { setTimeout(resolve, ms); });
 async function startDaemon(root, binary) {
   const file = path.join(root, DAEMON_STATE);
   const before = exists(file) ? fs.statSync(file).mtimeMs : 0;
-  const child = spawn(binary, ['daemon', 'start'], { cwd: root, detached: true, stdio: 'ignore' });
+  const child = spawn(binary, ['daemon', 'start'], { cwd: root, detached: true, stdio: 'ignore', windowsHide: true });
   child.unref();
   for (let i = 0; i < 20; i += 1) {
     await sleep(150);
@@ -768,15 +769,27 @@ async function withDaemon(root, binary, args) {
   return { ...answer, cache: 'daemon/hot' };
 }
 
+/// Defaults for every native validation pass: `--quiet` (no spray) + `-f agent` output.
+/// Appended only when the caller did not already set them, so explicit flags still win.
+const FORMAT_TOKENS = new Set(['-f', '--format', '--agent', '--json', '--jsonl']);
+function withDefaults(args) {
+  const out = args.length ? [...args] : ['.'];
+  const hasFormat = out.some((t) => FORMAT_TOKENS.has(t) || t.startsWith('--format=') || t.startsWith('-f='));
+  if (!hasFormat) out.push('--agent');
+  if (!out.includes('--quiet')) out.push('--quiet');
+  return out;
+}
+
 /// One native execution, daemon-first. `cache` reports which path actually answered.
-async function nativeRun(root, args) {
+async function nativeRun(root, raw) {
+  const args = withDefaults(raw);
   const binary = resolveBinary(root);
   if (!binary) return { code: 1, body: 'RAILGUN: BLOCKED no native railgun binary', cache: 'cold' };
   if (!args.includes('--no-daemon') && daemonMisses.count < 2) {
     const hot = await withDaemon(root, binary, args);
     if (hot) return hot;
   }
-  const res = spawnSync(binary, [...args, ...(daemonMisses.count >= 2 && !args.includes('--no-daemon') ? ['--no-daemon'] : [])], { cwd: root, encoding: 'utf8' });
+  const res = spawnSync(binary, [...args, ...(daemonMisses.count >= 2 && !args.includes('--no-daemon') ? ['--no-daemon'] : [])], { cwd: root, encoding: 'utf8', windowsHide: true });
   const body = `${res.stdout || ''}${res.stderr || ''}`;
   return { code: res.status === null ? 1 : res.status, body, cache: 'cold' };
 }
@@ -796,7 +809,7 @@ function forwardArgs(args) {
 function gitLines(root, args) {
   const key = `${path.resolve(root)}|${args.join(' ')}`;
   if (gitCache.has(key)) return gitCache.get(key);
-  const res = spawnSync('git', args, { cwd: root, encoding: 'utf8' });
+  const res = spawnSync('git', args, { cwd: root, encoding: 'utf8', windowsHide: true });
   const lines = res.status === 0 ? res.stdout.split(/\r?\n/).filter(Boolean) : [];
   gitCache.set(key, lines);
   return lines;
@@ -1047,7 +1060,7 @@ async function cmdInit(root, argv) {
     const flags = runner === 'pnpm'
       ? ['install', '--prefer-offline', '--ignore-scripts', '--no-optional']
       : ['install', '--prefer-offline', '--ignore-scripts', '--omit=optional'];
-    spawnSync(runner, flags, { cwd: root, stdio: 'inherit' });
+    spawnSync(runner, flags, { cwd: root, stdio: 'inherit', windowsHide: true });
     dep = `linked ${local}`;
   }
   const binary = resolveBinary(root);
@@ -1168,7 +1181,7 @@ function supportedFlags(version) {
 function cmdDoctor(root) {
   const native = resolveBinary(root);
   const plan = buildPlan(root);
-  const version = native ? (spawnSync(native, ['--version'], { encoding: 'utf8' }).stdout || '').trim() : 'missing';
+  const version = native ? (spawnSync(native, ['--version'], { encoding: 'utf8', windowsHide: true }).stdout || '').trim() : 'missing';
   const state = readDaemonState(root);
   const ts = plan.entries.map((e) => depValue(e.json, 'typescript')).filter(Boolean);
   const nexts = plan.nextApps.map((e) => depValue(e.json, 'next') || '?');
@@ -1227,7 +1240,7 @@ async function cmdStatus(root, args) {
   const affected = plan.wsFile ? affectedPackages(root, plan.entries.map((e) => e.dir)) : [];
   const scope = affected.length ? affected : ['.'];
   const start = Date.now();
-  const run = await nativeRun(root, [...scope, '--type-aware', '--type-check', '--quiet', '--summary-only', '-f', 'agent', ...args]);
+  const run = await nativeRun(root, [...scope, '--type-aware', '--type-check', '--summary-only', ...args]);
   const elapsed = Date.now() - start;
   const baseline = parseJsonFile(baselinePath(root));
   const cmp = compareBaseline(root, run.body);
@@ -1257,7 +1270,7 @@ async function cmdWorkspace(root, task, args) {
   if (task === 'typegen') {
     for (const entry of plan.nextApps) {
       const rel = path.relative(root, entry.dir).replace(/\\/g, '/') || '.';
-      const res = spawnSync('npx', ['--no-install', 'next', 'typegen', rel], { cwd: root, stdio: 'inherit' });
+      const res = spawnSync('npx', ['--no-install', 'next', 'typegen', rel], { cwd: root, stdio: 'inherit', windowsHide: true });
       if (res.status !== 0) return res.status ?? 1;
     }
     return 0;
@@ -1266,14 +1279,13 @@ async function cmdWorkspace(root, task, args) {
     const bin = path.join(root, 'node_modules', '.bin', process.platform === 'win32' ? 'turbo.cmd' : 'turbo');
     const runner = exists(bin) ? bin : 'npx';
     const pre = exists(bin) ? [] : ['--no-install', 'turbo'];
-    const res = spawnSync(runner, [...pre, 'run', task, '--affected', ...args.filter((a) => a !== '--affected')], { cwd: root, stdio: 'inherit' });
+    const res = spawnSync(runner, [...pre, 'run', task, '--affected', ...args.filter((a) => a !== '--affected')], { cwd: root, stdio: 'inherit', windowsHide: true });
     return res.status ?? 1;
   }
   const affected = affectedOnly ? affectedPackages(root, dirs) : [];
   const scope = affectedOnly ? (affected.length ? affected : ['.']) : (dirs.length ? dirs : ['.']);
-  const flags = task === 'lint'
-    ? ['--quiet']
-    : ['--type-aware', '--type-check', '--quiet'];
+  // `--quiet` and `-f agent` come from `withDefaults`; only the type-aware pair is per-task.
+  const flags = task === 'lint' ? [] : ['--type-aware', '--type-check'];
   // `--no-daemon` is forwarded so the native process sees the same modifiers the caller used.
   const extra = args.filter((a) => a !== '--affected');
   const run = await nativeRun(root, [...scope, ...flags, ...extra]);
@@ -1305,7 +1317,7 @@ function cmdBaseline(root, args) {
     return 1;
   }
   const scope = args.length ? args : ['.'];
-  const res = spawnSync(native, [...scope, '--type-aware', '--type-check', '--quiet', '-f', 'agent'], { cwd: root, encoding: 'utf8' });
+  const res = spawnSync(native, withDefaults([...scope, '--type-aware', '--type-check']), { cwd: root, encoding: 'utf8', windowsHide: true });
   const body = res.stdout || '';
   const state = captureBaseline(root, body);
   process.stdout.write(`baseline captured: ${state.diagnostics.length} diagnostics (sha ${state.hash.slice(0, 12)})\n`);
@@ -1346,10 +1358,10 @@ async function main() {
     case 'workspace': return cmdWorkspace(root, args[0] || 'check', args.slice(1));
     case 'typegen': return cmdWorkspace(root, 'typegen', args);
     case 'ci': {
-      const code = await cmdWorkspace(root, 'check', ['--affected', '-f', 'agent', '--no-daemon', ...args]);
+      const code = await cmdWorkspace(root, 'check', ['--affected', '--no-daemon', ...args]);
       if (code !== 0 || !args.includes('--build')) return code;
       for (const entry of buildPlan(root).nextApps) {
-        const res = spawnSync('npx', ['--no-install', 'next', 'build'], { cwd: entry.dir, stdio: 'inherit' });
+        const res = spawnSync('npx', ['--no-install', 'next', 'build'], { cwd: entry.dir, stdio: 'inherit', windowsHide: true });
         if (res.status !== 0) return res.status ?? 1;
       }
       return 0;
@@ -1360,13 +1372,13 @@ async function main() {
         process.stdout.write('RAILGUN: BLOCKED no native railgun binary\n');
         return 1;
       }
-      return spawnSync(native, [command, ...args], { cwd: root, stdio: 'inherit' }).status ?? 0;
+      return spawnSync(native, [command, ...args], { cwd: root, stdio: 'inherit', windowsHide: true }).status ?? 0;
     }
     case 'help': {
       const native = resolveBinary(root);
-      return spawnSync(native || 'oxlint', ['--help'], { stdio: 'inherit' }).status ?? 0;
+      return spawnSync(native || 'oxlint', ['--help'], { windowsHide: true, stdio: 'inherit' }).status ?? 0;
     }
-    case 'lint': return cmdCheck(root, args.length ? args : ['.', '--quiet']);
+    case 'lint': return cmdCheck(root, args.length ? args : ['.']);
     case 'typecheck': return cmdCheck(root, args.length ? args : ['.', '--type-aware', '--type-check']);
     case 'check': return cmdCheck(root, args.length ? args : ['.']);
     default: return cmdCheck(root, at >= 0 ? [command, ...args] : ['.']);

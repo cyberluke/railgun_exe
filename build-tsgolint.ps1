@@ -1,10 +1,18 @@
 # Build railgun-ts.exe (tsgolint on Go-native TypeScript 7).
-$ErrorActionPreference = 'Stop'
-
 param(
-    [string]$SrcRoot = 'C:\git\tsgolint',
+    [string]$SrcRoot,
     [string]$BinDir  = 'C:\bin'
 )
+$ErrorActionPreference = 'Stop'
+
+# Submodule layout: ./tsgolint (+ ./tsgolint/typescript-go) next to this script.
+if (-not $SrcRoot) { $SrcRoot = Join-Path $PSScriptRoot 'tsgolint' }
+if (-not (Test-Path -LiteralPath (Join-Path $SrcRoot '.git'))) {
+  Write-Host "[build-tsgolint] missing submodule at $SrcRoot"
+  Write-Host '[build-tsgolint] run: git submodule update --init --recursive'
+  exit 1
+}
+Write-Host "[build-tsgolint] tsgolint root = $SrcRoot"
 
 Set-Location $SrcRoot
 
