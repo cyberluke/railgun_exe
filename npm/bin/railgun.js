@@ -228,13 +228,25 @@ function resolveBinary(root) {
   if (process.env.RAILGUN_BIN) candidates.push(process.env.RAILGUN_BIN);
   candidates.push(path.join(root, '.railgun', 'bin', 'railgun.exe'));
   candidates.push(path.join(root, '.railgun', 'bin', 'railgun'));
+  // Fat layout: one package, `bin/<os>-<cpu>/{railgun,railgun-ts}`.
+  const targetDir = {
+    'win32|x64': 'win32-x64', 'linux|x64': 'linux-x64',
+    'linux|arm64': 'linux-arm64', 'darwin|arm64': 'darwin-arm64',
+  }[`${process.platform}|${process.arch}`];
+  if (targetDir) {
+    const dirBase = path.join(root, 'node_modules', '@cyberluke', 'railgun', 'bin', targetDir);
+    candidates.push(path.join(dirBase, 'railgun.exe'), path.join(dirBase, 'railgun'));
+  }
   candidates.push(path.join(root, 'node_modules', '@cyberluke', 'railgun', 'bin', 'railgun.exe'));
+  candidates.push(path.join(root, 'node_modules', '@cyberluke', 'railgun', 'bin', 'railgun'));
   for (const pkg of [
     '@cyberluke/railgun-win32-x64', '@cyberluke/railgun-linux-x64',
     '@cyberluke/railgun-linux-arm64', '@cyberluke/railgun-darwin-arm64',
   ]) {
     candidates.push(path.join(root, 'node_modules', pkg, 'bin', 'railgun.exe'));
     candidates.push(path.join(root, 'node_modules', pkg, 'railgun.exe'));
+    candidates.push(path.join(root, 'node_modules', pkg, 'bin', 'railgun'));
+    candidates.push(path.join(root, 'node_modules', pkg, 'railgun'));
   }
   candidates.push('C:\\bin\\railgun.exe');
   for (const dir of (process.env.PATH || '').split(path.delimiter)) {
@@ -271,6 +283,30 @@ function shimBin(root, binary) {
 }
 
 const PKG_DIR = path.resolve(__dirname, '..');
+
+/// Install hook: replace a live daemon with the freshly installed body, then
+/// start it so the tray icon appears without a second CLI round-trip.
+function cmdPostinstall(root) {
+  const native = resolveBinary(root);
+  if (!native) {
+    process.stdout.write('RAILGUN: BLOCKED no native railgun binary\n');
+    return 1;
+  }
+  if (readDaemonState(root)) {
+    spawnSync(native, ['daemon', 'stop'], { cwd: root, stdio: 'inherit', windowsHide: true });
+  }
+  const state = startDaemon(root, native);
+  if (state instanceof Promise) {
+    return state.then((fresh) => {
+      process.stdout.write(fresh && fresh.pid
+        ? `RAILGUN: READY daemon replaced, pid ${fresh.pid}, tray icon active\n`
+        : 'RAILGUN: BLOCKED daemon did not report an endpoint\n');
+      return fresh && fresh.pid ? 0 : 1;
+    });
+  }
+  process.stdout.write(`RAILGUN: READY daemon replaced, pid ${native ? 'started' : 'n/a'}, tray icon active\n`);
+  return 0;
+}
 
 /// `file:` spec for the local launcher folder, so pnpm/npm resolve `@cyberluke/railgun`
 /// without a registry lookup. Written straight into the root manifest.
@@ -666,32 +702,49 @@ function readDaemonState(root) {
   return state;
 }
 
-/// Complete `<payload>\nEXIT <code>\n` frames only, so a half-received code cannot
+/// RailWire v2: 32-byte little-endian header (`RGN2`, version 2, msg id,
+/// flags, status, request id, two u64 generations, u32 payload length) plus
+/// one JSON payload. Complete frames only, so a half-received status cannot
 /// resolve as success.
-function readFrames(buffer) {
-  const frames = [];
-  let idx = 0;
-  for (;;) {
-    const at = buffer.indexOf('\nEXIT ', idx);
-    if (at < 0) break;
-    const end = buffer.indexOf('\n', at + 1);
-    if (end < 0) break;
-    frames.push({ body: buffer.slice(idx, at), code: Number(buffer.slice(at + 6, end)) });
-    idx = end + 1;
-  }
-  return frames;
+const RGN2 = [0x52, 0x47, 0x4e, 0x32];
+
+function encodeFrame(msgId, payload) {
+  const body = Buffer.from(payload, 'utf8');
+  const header = Buffer.alloc(32);
+  RGN2.forEach((b, i) => { header[i] = b; });
+  header[4] = 2;
+  header[5] = msgId;
+  header.writeUInt32LE(1, 8);
+  header.writeBigUInt64LE(0n, 12);
+  header.writeBigUInt64LE(0n, 20);
+  header.writeUInt32LE(body.length, 28);
+  return Buffer.concat([header, body]);
+}
+
+function decodeFrame(buffer) {
+  if (buffer.length < 32) return null;
+  for (let i = 0; i < 4; i += 1) if (buffer[i] !== RGN2[i]) return null;
+  if (buffer[4] !== 2) return null;
+  const len = buffer.readUInt32LE(28);
+  if (buffer.length < 32 + len) return null;
+  return {
+    msg: buffer[5],
+    status: buffer[7],
+    generation: Number(buffer.readBigUInt64LE(12)),
+    body: buffer.subarray(32, 32 + len).toString('utf8'),
+  };
 }
 
 /// One request per connection (the server answers a single frame per accept).
 /// Windows named pipes are the primary transport, loopback TCP the fallback.
-function tcpRequest(endpoint, lines, timeoutMs = 90000) {
+function tcpRequest(endpoint, msgId, payload, timeoutMs = 90000) {
   return new Promise((resolve) => {
     const socket = typeof endpoint === 'number' ? net.connect(endpoint, '127.0.0.1') : net.connect(endpoint);
-    let buffer = '';
+    let buffer = Buffer.alloc(0);
     let done = false;
     const finish = (forced = false) => {
       if (done) return;
-      const [frame] = readFrames(buffer);
+      const frame = decodeFrame(buffer);
       if (!frame) {
         // On timeout a half-received frame is not enough; fall back to a cold run.
         if (!forced) return;
@@ -704,27 +757,29 @@ function tcpRequest(endpoint, lines, timeoutMs = 90000) {
       done = true;
       clearTimeout(timer);
       socket.destroy();
-      resolve({ body: frame.body, code: Number.isNaN(frame.code) ? 1 : frame.code });
+      resolve(frame);
     };
     const timer = setTimeout(() => finish(true), timeoutMs);
     socket.setNoDelay(true);
     socket.on('data', (chunk) => {
-      buffer += chunk.toString('utf8');
+      buffer = Buffer.concat([buffer, chunk]);
       finish(false);
     });
     socket.on('error', () => finish(true));
     socket.on('close', () => finish(true));
-    socket.on('connect', () => socket.write(`${lines.join('\n')}\n.\n`));
+    socket.on('connect', () => socket.write(encodeFrame(msgId, payload)));
   });
 }
+
+const MSG = { HELLO: 0, CHECK: 2, STATUS: 10, SHUTDOWN: 14 };
 
 /// Identity first, on its own connection, so a recycled endpoint cannot answer for this workspace.
 async function daemonRequest(state, args, timeoutMs = 30000) {
   const endpoint = state.pipe || state.port;
   if (!endpoint) return null;
-  const identity = await tcpRequest(endpoint, ['key'], 3000);
-  if (!identity || String(identity.body).trim() !== String(state.key).trim()) return null;
-  return tcpRequest(endpoint, args, timeoutMs);
+  const hello = await tcpRequest(endpoint, MSG.HELLO, '', 3000);
+  if (!hello) return null;
+  return tcpRequest(endpoint, MSG.CHECK, JSON.stringify(args), timeoutMs);
 }
 
 const DAEMON_STATE = path.join('.railgun', 'daemon.json');
@@ -766,7 +821,7 @@ async function withDaemon(root, binary, args) {
     daemonMisses.count += 1;
     return null;
   }
-  return { ...answer, cache: 'daemon/hot' };
+  return { body: answer.body, code: answer.status, generation: answer.generation, cache: 'daemon/hot' };
 }
 
 /// Defaults for every native validation pass: `--quiet` (no spray) + `-f agent` output.
@@ -1366,6 +1421,7 @@ async function main() {
       }
       return 0;
     }
+    case 'postinstall': return cmdPostinstall(root);
     case 'daemon': {
       const native = resolveBinary(root);
       if (!native) {

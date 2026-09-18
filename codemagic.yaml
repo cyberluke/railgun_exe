@@ -1,0 +1,64 @@
+workflows:
+  railgun-darwin-arm64:
+    name: Railgun Darwin arm64
+
+    instance_type: mac_mini_m4
+
+    environment:
+      xcode: latest
+      node: 22
+
+    scripts:
+      - name: Environment
+        script: |
+          set -euxo pipefail
+          uname -a
+          uname -m
+          sw_vers
+          xcodebuild -version
+
+      - name: Install pinned Rust
+        script: |
+          set -euxo pipefail
+          curl -fsSLo /tmp/rustup https://sh.rustup.rs
+          sh /tmp/rustup -y --default-toolchain 1.98.1
+          export PATH="$HOME/.cargo/bin:$PATH"
+          rustup target add aarch64-apple-darwin --toolchain 1.98.1
+          rustup component add llvm-tools --toolchain 1.98.1
+
+      - name: Install pinned Go
+        script: |
+          set -euxo pipefail
+          curl -fsSLo /tmp/go.tgz https://go.dev/dl/go1.27.0.darwin-arm64.tar.gz
+          mkdir -p "$CM_CACHE_PATH/go" && tar -xzf /tmp/go.tgz -C "$CM_CACHE_PATH/go"
+          export PATH="$CM_CACHE_PATH/go/go/bin:$PATH"
+          go version
+          echo "PATH=$PATH" >> $CM_ENV
+
+      - name: Prepare sources
+        script: |
+          set -euxo pipefail
+          git clone --depth 1 https://github.com/oxc-project/oxc.git ../oxc
+          git clone --depth 1 --recursive https://github.com/oxc-project/tsgolint.git ../tsgolint
+
+      - name: Build Railgun Darwin
+        script: |
+          set -euxo pipefail
+          export PATH="$HOME/.cargo/bin:$PATH"
+          ./ci/build-darwin-arm64.sh
+
+      - name: Verify
+        script: |
+          set -euxo pipefail
+          export PATH="$HOME/.cargo/bin:$PATH"
+          ./ci/verify-darwin-arm64.sh
+
+    artifacts:
+      - npm/bin/darwin-arm64/railgun
+      - npm/bin/darwin-arm64/railgun
+      - npm/bin/darwin-arm64/railgun-ts
+      - npm/bin/darwin-arm64/railgun-native
+      - npm/bin/darwin-arm64/railgun-pgo
+      - npm/bin/darwin-arm64/railgun-lld
+      - out/checksums-darwin-arm64.txt
+      - out/manifest-darwin-arm64.json

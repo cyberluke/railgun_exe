@@ -1,7 +1,7 @@
 {
   "name": "@cyberluke/railgun-linux-arm64",
-  "version": "2.0.6",
-  "description": "linux-arm64 native body for @cyberluke/railgun: Oxlint (PGO) + tsgolint (Go TS7).",
+  "version": "2.0.7",
+  "description": "linux-arm64 native body for @cyberluke/railgun: Oxlint (PGO) + tsgolint (Go TS7), static musl.",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -10,10 +10,10 @@
   "os": ["linux"],
   "cpu": ["arm64"],
   "files": [
-    "railgun.exe",
-    "railgun-pgo.exe",
-    "railgun-lld.exe",
-    "railgun-native.exe",
-    "railgun-ts.exe"
+    "railgun",
+    "railgun-pgo",
+    "railgun-lld",
+    "railgun-native",
+    "railgun-ts"
   ]
 }

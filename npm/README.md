@@ -17,14 +17,15 @@ EXCELLENT   20 errors | 66 files | 29599 LoC    | 127ms | cache: hot
 
 ## What ships in this package
 
+One package, bodies live in `bin/<os>-<cpu>/`:
+
 | file | role |
 | --- | --- |
 | `bin/railgun.js` | Node launcher + `railgunize` workspace migrator |
-| `bin/railgun.exe` | canonical body: PGO'd Oxlint, Q3-flavored output |
-| `bin/railgun-pgo.exe` | PGO-tuned hot loop |
-| `bin/railgun-lld.exe` | lld-linked twin |
-| `bin/railgun-native.exe` | target-cpu=native build |
-| `bin/railgun-ts.exe` | Go-native TS7 tsc backend for tsgolint |
+| `bin/win32-x64/railgun` / `railgun-ts` | PGO'd Oxlint + Go-native TS7 backend |
+| `bin/linux-x64/railgun` / `railgun-ts` | same, musl x64 |
+| `bin/linux-arm64/railgun` / `railgun-ts` | same, arm64 |
+| `bin/darwin-arm64/railgun-ts` | TS7 backend (Oxlint body from CI macos-14 lane) |
 | `skills/SKILL.md` | the validation ladder for AI agents |
 
 ## Why it wins
